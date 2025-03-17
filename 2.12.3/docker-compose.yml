@@ -3,45 +3,45 @@ version: '3'
 services:
   ocsapplication:
     image: ocsinventory/ocsinventory-docker-image:2.12.3
-    container_name : ocsinventory-server
+    container_name: ocsinventory-server
     restart: always
     expose:
       - "80"
     volumes:
-      - "perlcomdata:/etc/ocsinventory-server"
-      - "ocsreportsdata:/usr/share/ocsinventory-reports/ocsreports/extensions"
-      - "varlibdata:/var/lib/ocsinventory-reports"
-      - "httpdconfdata:/etc/apache2/conf-available"
-      - "profilesconfdata:/usr/share/ocsinventory-reports/ocsreports/config/profiles"
+      # Map Synology host folders into the container
+      - /volume1/docker/ocsinventory/perlcomdata:/etc/ocsinventory-server
+      - /volume1/docker/ocsinventory/ocsreportsdata:/usr/share/ocsinventory-reports/ocsreports/extensions
+      - /volume1/docker/ocsinventory/varlibdata:/var/lib/ocsinventory-reports
+      - /volume1/docker/ocsinventory/httpdconfdata:/etc/apache2/conf-available
+      - /volume1/docker/ocsinventory/profilesconfdata:/usr/share/ocsinventory-reports/ocsreports/config/profiles
     environment:
+      # Database connection details
       OCS_DB_SERVER: ocsinventory-db
       OCS_DB_USER: ocsuser
       OCS_DB_PASS: ocspass
       OCS_DB_NAME: ocsweb
-      # See documentation to set up SSL for MySQL
       OCS_SSL_ENABLED: 0
       OCS_DBI_PRINT_ERROR: 0
-    links:
-      - ocsdb
     networks:
       - localocs
     depends_on:
-      - ocsdb    
+      - ocsdb
 
-  ocsdb :
-    image : mysql:8.0
-    container_name : ocsinventory-db
+  ocsdb:
+    image: mysql:8.0
+    container_name: ocsinventory-db
     restart: always
-    expose :
+    expose:
       - "3306"
-    volumes :
-      - ./sql/:/docker-entrypoint-initdb.d/
-      - sqldata:/var/lib/mysql
+    volumes:
+      # Replace with your actual Synology paths
+      - /volume1/docker/ocsinventory/sql:/docker-entrypoint-initdb.d
+      - /volume1/docker/ocsinventory/sqldata:/var/lib/mysql
     environment:
-      MYSQL_ROOT_PASSWORD : rootpass
-      MYSQL_USER : ocsuser
-      MYSQL_PASSWORD : ocspass
-      MYSQL_DATABASE : ocsweb
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_USER: ocsuser
+      MYSQL_PASSWORD: ocspass
+      MYSQL_DATABASE: ocsweb
     networks:
       - localocs
 
@@ -50,22 +50,19 @@ services:
     container_name: ocsinventory-proxy
     restart: always
     ports:
-      - 80:80
-      - 443:443
+      - "80:80"
+      - "443:443"
     volumes:
-      - ./nginx/conf:/etc/nginx/templates
-      - ./nginx/certs:/etc/nginx/certs
-      - ./nginx/auth:/etc/nginx/auth
+      # Optional: if you want NGINX configs/certs on the host
+      - /volume1/docker/ocsinventory/nginx/conf:/etc/nginx/templates
+      - /volume1/docker/ocsinventory/nginx/certs:/etc/nginx/certs
+      - /volume1/docker/ocsinventory/nginx/auth:/etc/nginx/auth
     environment:
-      # 80 or 443
       LISTEN_PORT: 80
-      # empty or ssl
       PORT_TYPE: ""
       SSL_CERT: ocs-dummy.crt
       SSL_KEY: ocs-dummy.key
-      # OCS Api user restriction (default ocsapi/ocapi)
       API_AUTH_FILE: ocsapi.htpasswd
-      # OCS Download
       READ_TIMEOUT: 300
       CONNECT_TIMEOUT: 300
       SEND_TIMEOUT: 300
@@ -74,14 +71,6 @@ services:
       - ocsapplication
     networks:
       - localocs
-  
+
 networks:
   localocs:
-
-volumes:
-  perlcomdata:
-  ocsreportsdata:
-  varlibdata:
-  httpdconfdata:
-  sqldata:
-  profilesconfdata:
